@@ -109,7 +109,7 @@ button,input,select{font:inherit;color:inherit}
     <div class="pills" id="pills"></div>
   </header>
   <div id="app"></div>
-  <p class="foot">TrustVT runs practice accounts and is not a licensed bank. No real money is held or moved. Do not enter real financial details.</p>
+  <p class="foot"><strong>TrustVTBank gives you the best.</strong> Practice banking for the community. No real money is held or moved.</p>
 </div>
 <div id="toast" class="toast" role="status" hidden></div>
 
@@ -543,9 +543,10 @@ button,input,select{font:inherit;color:inherit}
 
   function draw(){
     var saved = saveInputs();
-    $('#pills').replaceChildren(
+    var pl = $('#pills');
+    pl.replaceChildren.apply(pl, [
       isAdmin ? h('span', {class:'pill'}, 'Bank admin') : null,
-      session ? h('button', {class:'btn ghost sm', onclick:signOut}, 'Sign out') : null);
+      session ? h('button', {class:'btn ghost sm', onclick:signOut}, 'Sign out') : null].filter(Boolean));
     var root = $('#app');
     root.replaceChildren.apply(root, build());
     restoreInputs(saved);
