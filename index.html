@@ -1,0 +1,582 @@
+<title>TrustVT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column that works as a phone app; tabs switch Overview / Move money / History, plus an Admin console for the owner. */
+:root{
+  --bg:#EEF2F4; --surface:#FFFFFF; --ink:#10262F; --muted:#5A6F78; --line:#D6DEE2;
+  --accent:#0A6B63; --accent-ink:#FFFFFF; --accent-soft:#DDF0EC;
+  --good:#1B7F4B; --warn:#8F5B00; --warn-soft:#FBEFD2; --bad:#B3261E; --bad-soft:#FBE3E0;
+  --display:'Familjen Grotesk','Helvetica Neue',Arial,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C171C; --surface:#13232A; --ink:#E6EFF2; --muted:#93A8B0; --line:#243A43;
+    --accent:#4CC2B3; --accent-ink:#06201D; --accent-soft:#123A36;
+    --good:#5CD08F; --warn:#E3B04B; --warn-soft:#3A2F12; --bad:#FF8A80; --bad-soft:#40201D;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C171C; --surface:#13232A; --ink:#E6EFF2; --muted:#93A8B0; --line:#243A43;
+  --accent:#4CC2B3; --accent-ink:#06201D; --accent-soft:#123A36;
+  --good:#5CD08F; --warn:#E3B04B; --warn-soft:#3A2F12; --bad:#FF8A80; --bad-soft:#40201D;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:760px;margin-inline:auto}
+button,input,select{font:inherit;color:inherit}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.01em}
+.brand svg{width:28px;height:28px;flex:none}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:-3px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.pill.demo{background:var(--warn-soft);color:var(--warn)}
+.pill.frozen{background:var(--bad-soft);color:var(--bad)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+:where(button,input,select):focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.card h2{font-family:var(--display);font-size:18px;line-height:1.25;margin:0 0 4px;text-wrap:balance}
+.card p.sub{margin:0 0 14px;color:var(--muted);font-size:14px}
+.hero{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:6px}
+.hero .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;font-weight:600}
+.hero .bal{font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hero .meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;opacity:.95;margin-top:6px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.tile .v{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:13px;font-weight:600}
+.field input,.field select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
+.field .hint{font-size:12px;color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 16px;min-height:44px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--bad);color:var(--surface)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:16px}
+.seg button{flex:1;border:0;background:transparent;border-radius:7px;padding:9px 6px;font-weight:600;color:var(--muted);cursor:pointer;min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.list{display:flex;flex-direction:column}
+.tx{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-top:1px solid var(--line)}
+.tx:first-child{border-top:0}
+.tx .t{font-weight:600;overflow-wrap:anywhere}
+.tx .d{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.tx .a{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.tx .b{text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pos{color:var(--good)} .neg{color:var(--ink)}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:22px 16px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-family:var(--display);font-size:17px;margin-bottom:4px}
+.cust{display:grid;grid-template-columns:1fr auto;gap:8px 12px;padding:14px 0;border-top:1px solid var(--line);align-items:center}
+.cust:first-child{border-top:0}
+.cust .n{font-weight:600;overflow-wrap:anywhere}
+.cust .acts{grid-column:1 / -1;display:flex;gap:8px;flex-wrap:wrap}
+.review{background:var(--accent-soft);border-radius:10px;padding:14px;margin-bottom:12px}
+.review dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
+.review dt{color:var(--muted);font-size:13px}.review dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.msg{border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;background:var(--bad-soft);color:var(--bad)}
+.ax{fill:var(--muted);font:11px var(--mono)} .ln{stroke:var(--accent);fill:none;stroke-width:2.5;stroke-linejoin:round} .ar{fill:var(--accent);opacity:.12} .dot{fill:var(--accent)} .gr{stroke:var(--line);stroke-width:1}
+.chart svg{width:100%;height:auto;display:block}
+.qrwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.qr{background:#fff;padding:8px;border-radius:10px;border:1px solid var(--line);width:168px;height:168px;flex:none}
+.qr svg{width:100%;height:100%;display:block}
+.field input[type="file"]{padding:8px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);z-index:5}
+.toast.err{background:var(--bad);color:var(--surface)}
+.foot{margin-top:28px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .18s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M5 16c3-3 6-3 9 0s6 3 9 0" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/><path d="M5 11c3-3 6-3 9 0s6 3 9 0" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" opacity=".45"/></svg>
+      <div>TrustVT<small>Online banking</small></div>
+    </div>
+    <div class="pills" id="pills"></div>
+  </header>
+  <div id="app"></div>
+  <p class="foot">TrustVT runs practice accounts and is not a licensed bank. No real money is held or moved. Do not enter real financial details.</p>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://rbtaosijpqrdzjoexjxo.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_xAWpCvqmmzmkWG3un0b6TQ_wPCwdcKn';
+  var CUR = '$';
+  var MAX_AMOUNT = 10000000;
+  var sb = null, session = null, isAdmin = false;
+  var status = 'loading';
+  var accounts = [], txs = [], lastSnapshot = '';
+  var tab = null, moveMode = 'deposit', pending = null, busy = false, toastTimer = null, authMode = 'signin', typeFilter = 'all';
+
+  var $ = function(s){ return document.querySelector(s); };
+
+  function h(tag, props){
+    var e = document.createElement(tag);
+    props = props || {};
+    for (var k in props){
+      var v = props[k];
+      if (v == null || v === false) continue;
+      if (k === 'class') e.className = v;
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else e.setAttribute(k, v);
+    }
+    for (var i = 2; i < arguments.length; i++){
+      var kids = [].concat(arguments[i]);
+      for (var j = 0; j < kids.length; j++){
+        var c = kids[j];
+        if (c == null || c === false) continue;
+        e.append(c.nodeType ? c : document.createTextNode(String(c)));
+      }
+    }
+    return e;
+  }
+
+  function fmt(c){ return CUR + (c / 100).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtSigned(c){ return (c > 0 ? '+' : c < 0 ? '−' : '') + fmt(Math.abs(c)); }
+  function fmtDate(ts){ return new Date(ts).toLocaleString(undefined, {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}); }
+  function groupNo(n){ return String(n).replace(/(\d{4})(?=\d)/g, '$1 '); }
+  function parseAmount(s){
+    var n = parseFloat(String(s || '').replace(/[, ]/g, ''));
+    if (!isFinite(n) || n <= 0) return null;
+    var c = Math.round(n * 100);
+    return c > MAX_AMOUNT * 100 ? null : c;
+  }
+  function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+
+  function toast(msg, isErr){
+    var t = $('#toast');
+    t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.hidden = true; }, 4200);
+  }
+  function bad(msg){ var e = new Error(msg); e.userFacing = true; return e; }
+  function errText(e){
+    if (e && e.userFacing) return e.message;
+    return 'Something went wrong. Check your connection and try again.';
+  }
+
+  async function rpc(name, args){
+    var r = await sb.rpc(name, args || {});
+    if (r.error) throw bad(r.error.message);
+    return r.data;
+  }
+
+  async function refresh(){
+    var a = await sb.from('accounts').select('*').order('created_at', {ascending:false});
+    if (a.error) throw bad(a.error.message);
+    var t = await sb.from('transactions').select('*').order('created_at', {ascending:false}).limit(500);
+    if (t.error) throw bad(t.error.message);
+    var snap = JSON.stringify([a.data, t.data]);
+    var changed = snap !== lastSnapshot;
+    lastSnapshot = snap;
+    accounts = a.data; txs = t.data;
+    return changed;
+  }
+
+  async function act(fn, okMsg){
+    if (busy) return;
+    busy = true; draw();
+    try { await fn(); await refresh(); if (okMsg) toast(okMsg); }
+    catch (e){ toast(errText(e), true); }
+    busy = false; draw();
+  }
+
+  function myAccount(){ return session ? (accounts.find(function(a){ return a.user_id === session.user.id; }) || null) : null; }
+  function myTx(){ var a = myAccount(); return a ? txs.filter(function(t){ return t.account_id === a.id; }) : []; }
+
+  function describe(t){
+    switch (t.type){
+      case 'deposit': return t.note || 'Cash deposit';
+      case 'withdrawal': return t.note || 'Cash withdrawal';
+      case 'transfer_out': return 'Transfer to ' + (t.counterparty || 'customer');
+      case 'transfer_in': return 'Transfer from ' + (t.counterparty || 'customer');
+      case 'interest': return 'Interest credit';
+      case 'adjustment': return 'Bank adjustment';
+    }
+    return 'Transaction';
+  }
+  function detail(t){
+    var bits = [fmtDate(t.created_at)];
+    if ((t.type === 'transfer_out' || t.type === 'transfer_in' || t.type === 'adjustment') && t.note) bits.push(t.note);
+    return bits.join(' · ');
+  }
+
+  /* ---------- sign in ---------- */
+  async function signIn(){
+    var email = val('f-email').trim(), pass = val('f-pass');
+    if (!email || !pass) return toast('Enter your email and password.', true);
+    if (busy) return;
+    busy = true; draw();
+    var r = await sb.auth.signInWithPassword({email:email, password:pass});
+    busy = false;
+    if (r.error) { toast(r.error.message, true); draw(); }
+  }
+  async function signUp(){
+    var email = val('f-email').trim(), pass = val('f-pass');
+    if (!email || !pass) return toast('Enter your email and a password.', true);
+    if (pass.length < 8) return toast('Use a password of at least 8 characters.', true);
+    if (busy) return;
+    busy = true; draw();
+    var r = await sb.auth.signUp({email:email, password:pass});
+    busy = false;
+    if (r.error) { toast(r.error.message, true); draw(); return; }
+    if (!r.data.session){ toast('Check your email to confirm your address, then sign in.'); authMode = 'signin'; }
+    draw();
+  }
+  async function signOut(){
+    await sb.auth.signOut();
+  }
+
+  /* ---------- customer actions ---------- */
+  function openAccount(){
+    var name = val('f-name').trim();
+    var open = val('f-open') ? parseAmount(val('f-open')) : 0;
+    if (name.length < 2 || name.length > 40) return toast('Enter your full name, 2 to 40 characters.', true);
+    if (open === null) return toast('Enter a valid opening deposit, or leave it empty.', true);
+    act(async function(){ await rpc('open_account', {p_name:name, p_opening_cents:open || 0}); tab = 'overview'; }, 'Account opened. Welcome to TrustVT.');
+  }
+  function deposit(){
+    var c = parseAmount(val('f-amt'));
+    if (!c) return toast('Enter an amount between ' + fmt(1) + ' and ' + fmt(MAX_AMOUNT * 100) + '.', true);
+    act(function(){ return rpc('deposit', {p_amount_cents:c, p_note:val('f-note').trim().slice(0, 60)}); }, 'Deposited ' + fmt(c));
+  }
+  function withdraw(){
+    var c = parseAmount(val('f-amt'));
+    if (!c) return toast('Enter an amount between ' + fmt(1) + ' and ' + fmt(MAX_AMOUNT * 100) + '.', true);
+    act(function(){ return rpc('withdraw', {p_amount_cents:c, p_note:val('f-note').trim().slice(0, 60)}); }, 'Withdrew ' + fmt(c));
+  }
+  async function reviewTransfer(){
+    var no = val('f-to').replace(/\s/g, '');
+    var c = parseAmount(val('f-amt'));
+    var me = myAccount();
+    if (!/^\d{10}$/.test(no)) return toast('Enter the 10-digit account number.', true);
+    if (!c) return toast('Enter an amount between ' + fmt(1) + ' and ' + fmt(MAX_AMOUNT * 100) + '.', true);
+    if (me.account_no === no) return toast('You cannot send money to your own account.', true);
+    if (me.balance_cents < c) return toast('Insufficient funds. Your balance is ' + fmt(me.balance_cents) + '.', true);
+    if (busy) return;
+    busy = true; draw();
+    try {
+      var rows = await rpc('lookup_account', {p_account_no:no});
+      if (!rows || !rows.length) throw bad('No account found with that number.');
+      if (rows[0].status !== 'active') throw bad('That account cannot receive transfers right now.');
+      pending = {toNo:no, toName:rows[0].masked_name, cents:c, note:val('f-note').trim().slice(0, 60)};
+    } catch (e){ toast(errText(e), true); }
+    busy = false; draw();
+  }
+  function confirmTransfer(){
+    var p = pending;
+    act(async function(){
+      await rpc('transfer', {p_to_account_no:p.toNo, p_amount_cents:p.cents, p_note:p.note});
+      pending = null;
+    }, 'Sent ' + fmt(p.cents) + ' to ' + p.toName);
+  }
+
+  /* ---------- admin actions ---------- */
+  function toggleFreeze(a){
+    act(function(){ return rpc('admin_set_status', {p_account_id:a.id, p_status: a.status === 'active' ? 'frozen' : 'active'}); },
+        a.status === 'active' ? a.full_name + ' frozen' : a.full_name + ' unfrozen');
+  }
+  function adjust(){
+    var id = val('f-cust'), dir = val('f-dir'), c = parseAmount(val('f-amt')), reason = val('f-note').trim().slice(0, 60);
+    if (!id) return toast('Choose a customer.', true);
+    if (!c) return toast('Enter an amount between ' + fmt(1) + ' and ' + fmt(MAX_AMOUNT * 100) + '.', true);
+    if (!reason) return toast('Add a reason so the customer sees why.', true);
+    act(function(){ return rpc('admin_adjust', {p_account_id:id, p_amount_cents: dir === 'debit' ? -c : c, p_reason:reason}); }, 'Adjustment posted');
+  }
+  function applyInterest(){
+    var rate = parseFloat(val('f-rate'));
+    if (!isFinite(rate) || rate <= 0 || rate > 50) return toast('Enter an annual rate between 0.1 and 50.', true);
+    act(async function(){
+      var n = await rpc('admin_pay_interest', {p_rate:rate});
+      if (!n) throw bad('No active account earned interest.');
+      toast('Interest paid to ' + n + (n === 1 ? ' account' : ' accounts'));
+    });
+  }
+
+  /* ---------- views ---------- */
+  function sparkline(vals){
+    var W = 600, H = 150, P = 30;
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals), span = (max - min) || 1;
+    var x = function(i){ return P + (W - 2 * P) * (i / (vals.length - 1)); };
+    var y = function(v){ return H - P - (H - 2 * P) * ((v - min) / span); };
+    var pts = vals.map(function(v, i){ return x(i).toFixed(1) + ',' + y(v).toFixed(1); });
+    var area = 'M' + x(0).toFixed(1) + ',' + (H - P) + ' L' + pts.join(' L') + ' L' + x(vals.length - 1).toFixed(1) + ',' + (H - P) + ' Z';
+    var last = vals.length - 1;
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Balance after each transaction">' +
+      '<line class="gr" x1="' + P + '" x2="' + (W - P) + '" y1="' + y(max).toFixed(1) + '" y2="' + y(max).toFixed(1) + '"/>' +
+      '<line class="gr" x1="' + P + '" x2="' + (W - P) + '" y1="' + y(min).toFixed(1) + '" y2="' + y(min).toFixed(1) + '"/>' +
+      '<path class="ar" d="' + area + '"/><polyline class="ln" points="' + pts.join(' ') + '"/>' +
+      '<circle class="dot" cx="' + x(last).toFixed(1) + '" cy="' + y(vals[last]).toFixed(1) + '" r="5"/>' +
+      '<text class="ax" x="' + P + '" y="' + (y(max) - 6).toFixed(1) + '">' + fmt(max) + '</text>' +
+      '<text class="ax" x="' + P + '" y="' + (y(min) + 15).toFixed(1) + '">' + fmt(min) + '</text></svg>';
+    var d = document.createElement('div'); d.className = 'chart'; d.innerHTML = s; return d;
+  }
+
+  function qrBlock(a){
+    if (!window.qrcode) return emptyBlock('QR code unavailable', 'Your account number is ' + groupNo(a.account_no) + '.');
+    var q = window.qrcode(0, 'M');
+    q.addData('trustvt:' + a.account_no);
+    q.make();
+    var box = h('div', {class:'qr', role:'img', 'aria-label':'QR code for account ' + groupNo(a.account_no)});
+    box.innerHTML = q.createSvgTag({cellSize:6, margin:3, scalable:true});
+    return box;
+  }
+  function scanQr(ev){
+    var file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    if (!window.jsQR) return toast('QR scanning is unavailable right now.', true);
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var s = Math.min(1, 900 / Math.max(img.width, img.height));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      var d = cx.getImageData(0, 0, cv.width, cv.height);
+      var r = window.jsQR(d.data, d.width, d.height);
+      var m = r && /^trustvt:(\d{10})$/.exec(r.data);
+      if (!m) return toast('No TrustVT QR code found in that photo.', true);
+      var to = document.getElementById('f-to');
+      if (to) to.value = m[1];
+      toast('Account number filled in from the QR code.');
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); toast('Could not read that image.', true); };
+    img.src = url;
+  }
+
+  function txRow(t){
+    return h('div', {class:'tx'},
+      h('div', {class:'t'}, describe(t)),
+      h('div', {class:'a ' + (t.amount_cents > 0 ? 'pos' : 'neg')}, fmtSigned(t.amount_cents)),
+      h('div', {class:'d'}, detail(t)),
+      h('div', {class:'b'}, 'Balance ' + fmt(t.balance_after_cents)));
+  }
+  function emptyBlock(title, text){ return h('div', {class:'empty'}, h('strong', {}, title), text); }
+
+  function field(id, label, props, hint){
+    var input = props.options
+      ? h('select', {id:id}, props.options.map(function(o){ return h('option', {value:o[0]}, o[1]); }))
+      : h('input', {id:id, type:props.type || 'text', inputmode:props.mode, placeholder:props.ph, maxlength:props.max, autocomplete:props.auto || 'off', value:props.value});
+    return h('div', {class:'field'}, h('label', {for:id}, label), input, hint ? h('span', {class:'hint'}, hint) : null);
+  }
+
+  function viewAuth(){
+    var signup = authMode === 'signup';
+    return [h('div', {class:'card'},
+      h('h2', {}, signup ? 'Create your login' : 'Sign in to TrustVT'),
+      h('p', {class:'sub'}, signup ? 'Use your email and a password of at least 8 characters.' : 'Welcome back. Enter your details to see your account.'),
+      field('f-email', 'Email address', {type:'email', mode:'email', ph:'you@example.com', auto:'email'}),
+      field('f-pass', 'Password', {type:'password', ph:signup ? 'At least 8 characters' : '', auto:signup ? 'new-password' : 'current-password'}),
+      h('div', {class:'actions'},
+        h('button', {class:'btn', onclick:signup ? signUp : signIn, disabled:busy}, signup ? 'Create login' : 'Sign in'),
+        h('button', {class:'btn ghost', onclick:function(){ authMode = signup ? 'signin' : 'signup'; draw(); }, disabled:busy}, signup ? 'I already have a login' : 'Create a login')))];
+  }
+
+  function viewOpen(){
+    return h('div', {class:'card'},
+      h('h2', {}, 'Open your account'),
+      h('p', {class:'sub'}, 'A free practice savings account. No real money is held or moved.'),
+      field('f-name', 'Full name', {ph:'e.g. Ada Okafor', max:40, auto:'name'}),
+      field('f-open', 'Opening deposit (optional)', {mode:'decimal', ph:'0.00'}, 'You can add money later from Move money.'),
+      h('div', {class:'actions'}, h('button', {class:'btn', onclick:openAccount, disabled:busy}, 'Open account')));
+  }
+
+  function viewOverview(){
+    var a = myAccount();
+    if (!a) return [viewOpen()];
+    var list = myTx();
+    var vals = list.slice().reverse().map(function(t){ return t.balance_after_cents; });
+    return [
+      h('div', {class:'hero'},
+        h('span', {class:'lbl'}, 'Available balance'),
+        h('span', {class:'bal'}, fmt(a.balance_cents)),
+        h('div', {class:'meta'}, h('span', {}, a.full_name), h('span', {class:'mono'}, groupNo(a.account_no)))),
+      a.status !== 'active' ? h('div', {class:'msg'}, 'This account is frozen by the bank. You can view it but not move money.') : null,
+      h('div', {class:'card'},
+        h('h2', {}, 'Receive money'),
+        h('p', {class:'sub'}, 'Show this QR code to a TrustVT customer. They scan it from a photo on the Transfer screen and your account number fills in.'),
+        h('div', {class:'qrwrap'}, qrBlock(a), h('div', {}, h('div', {class:'muted', style:'font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:600'}, 'Account number'), h('div', {class:'mono', style:'font-size:20px;font-weight:500;overflow-wrap:anywhere'}, groupNo(a.account_no)), h('div', {class:'muted', style:'font-size:14px'}, a.full_name)))),
+      h('div', {class:'card'},
+        h('h2', {}, 'Balance over time'),
+        h('p', {class:'sub'}, 'Your balance after each transaction.'),
+        vals.length > 1 ? sparkline(vals) : emptyBlock('Not enough history yet', 'Make a deposit or a transfer and your balance trend appears here.')),
+      h('div', {class:'card'},
+        h('h2', {}, 'Recent activity'),
+        list.length ? h('div', {class:'list'}, list.slice(0, 5).map(txRow)) : emptyBlock('No transactions yet', 'Go to Move money to make your first deposit.'))
+    ];
+  }
+
+  function viewMove(){
+    var a = myAccount();
+    if (!a) return [emptyBlock('Open an account first', 'Go to Overview to open your account.')];
+    var frozen = a.status !== 'active';
+    var modes = [['deposit', 'Deposit'], ['withdraw', 'Withdraw'], ['transfer', 'Transfer']];
+    var seg = h('div', {class:'seg', role:'group', 'aria-label':'Choose a transaction'}, modes.map(function(m){
+      return h('button', {type:'button', 'aria-pressed':String(moveMode === m[0]), onclick:function(){ moveMode = m[0]; pending = null; draw(); }}, m[1]);
+    }));
+    var form;
+    if (frozen){
+      form = h('div', {class:'msg'}, 'This account is frozen. Contact the bank to unfreeze it.');
+    } else if (moveMode === 'transfer' && pending){
+      form = h('div', {},
+        h('div', {class:'review'}, h('dl', {},
+          h('dt', {}, 'To'), h('dd', {}, pending.toName),
+          h('dt', {}, 'Account'), h('dd', {class:'mono'}, groupNo(pending.toNo)),
+          h('dt', {}, 'Amount'), h('dd', {}, fmt(pending.cents)),
+          pending.note ? h('dt', {}, 'Note') : null, pending.note ? h('dd', {}, pending.note) : null)),
+        h('div', {class:'actions'},
+          h('button', {class:'btn', onclick:confirmTransfer, disabled:busy}, 'Confirm and send'),
+          h('button', {class:'btn ghost', onclick:function(){ pending = null; draw(); }, disabled:busy}, 'Edit')));
+    } else {
+      var go = moveMode === 'deposit' ? deposit : moveMode === 'withdraw' ? withdraw : reviewTransfer;
+      var label = moveMode === 'deposit' ? 'Deposit money' : moveMode === 'withdraw' ? 'Withdraw money' : 'Review transfer';
+      form = h('div', {},
+        moveMode === 'transfer' ? field('f-to', 'Recipient account number', {mode:'numeric', ph:'10 digits', max:14}, 'Type the number, or scan a photo of their QR code below.') : null,
+        moveMode === 'transfer' ? h('div', {class:'field'}, h('label', {for:'f-qr'}, 'Scan a QR code from a photo'), h('input', {id:'f-qr', type:'file', accept:'image/*', onchange:scanQr})) : null,
+        field('f-amt', 'Amount (' + CUR + ')', {mode:'decimal', ph:'0.00'}, 'Available: ' + fmt(a.balance_cents)),
+        field('f-note', 'Note (optional)', {max:60, ph:moveMode === 'transfer' ? 'e.g. Lunch money' : ''}),
+        h('div', {class:'actions'}, h('button', {class:'btn', onclick:go, disabled:busy}, label)));
+    }
+    return [h('div', {class:'card'}, h('h2', {}, 'Move money'), h('p', {class:'sub'}, 'Deposits are simulated cash.'), seg, form)];
+  }
+
+  function viewHistory(){
+    var a = myAccount();
+    if (!a) return [emptyBlock('Open an account first', 'Go to Overview to open your account.')];
+    var list = myTx().filter(function(t){ return typeFilter === 'all' || t.type === typeFilter; });
+    var opts = [['all', 'All transactions'], ['deposit', 'Deposits'], ['withdrawal', 'Withdrawals'], ['transfer_out', 'Transfers sent'], ['transfer_in', 'Transfers received'], ['interest', 'Interest'], ['adjustment', 'Bank adjustments']];
+    var sel = h('select', {id:'f-filter', onchange:function(e){ typeFilter = e.target.value; draw(); }}, opts.map(function(o){ return h('option', {value:o[0], selected:o[0] === typeFilter}, o[1]); }));
+    return [h('div', {class:'card'},
+      h('h2', {}, 'Transaction history'),
+      h('div', {class:'field', style:'margin-top:10px'}, h('label', {for:'f-filter'}, 'Show'), sel),
+      list.length ? h('div', {class:'list'}, list.map(txRow)) : emptyBlock('Nothing to show', 'Transactions appear here as soon as you make one.'))];
+  }
+
+  function viewAdmin(){
+    var total = accounts.reduce(function(s, a){ return s + a.balance_cents; }, 0);
+    var frozen = accounts.filter(function(a){ return a.status !== 'active'; }).length;
+    var byId = {}; accounts.forEach(function(a){ byId[a.id] = a; });
+    var custOpts = [['', 'Choose a customer…']].concat(accounts.map(function(a){ return [a.id, a.full_name + ' · ' + groupNo(a.account_no)]; }));
+    var customers = accounts.length ? h('div', {class:'list'}, accounts.map(function(a){
+      return h('div', {class:'cust'},
+        h('div', {}, h('div', {class:'n'}, a.full_name), h('div', {class:'muted mono', style:'font-size:13px'}, groupNo(a.account_no))),
+        h('div', {style:'text-align:right'}, h('div', {class:'mono', style:'font-weight:600'}, fmt(a.balance_cents)), a.status !== 'active' ? h('span', {class:'pill frozen'}, 'Frozen') : h('span', {class:'pill'}, 'Active')),
+        h('div', {class:'acts'},
+          h('button', {class:'btn ghost sm', onclick:function(){ toggleFreeze(a); }, disabled:busy}, a.status === 'active' ? 'Freeze' : 'Unfreeze')));
+    })) : emptyBlock('No customers yet', 'Customers appear here as soon as they sign up and open an account.');
+    var activity = txs.slice(0, 12);
+    return [
+      h('div', {class:'tiles'},
+        h('div', {class:'tile'}, h('div', {class:'k'}, 'Customers'), h('div', {class:'v'}, String(accounts.length))),
+        h('div', {class:'tile'}, h('div', {class:'k'}, 'Money held'), h('div', {class:'v'}, fmt(total))),
+        h('div', {class:'tile'}, h('div', {class:'k'}, 'Frozen'), h('div', {class:'v'}, String(frozen))),
+        h('div', {class:'tile'}, h('div', {class:'k'}, 'Transactions'), h('div', {class:'v'}, String(txs.length)))),
+      h('div', {class:'card'}, h('h2', {}, 'Customers'), h('p', {class:'sub'}, 'Freeze blocks all deposits, withdrawals and transfers for that customer.'), customers),
+      h('div', {class:'grid2'},
+        h('div', {class:'card'}, h('h2', {}, 'Adjust a balance'), h('p', {class:'sub'}, 'Credit or debit with a reason the customer can see.'),
+          field('f-cust', 'Customer', {options:custOpts}),
+          field('f-dir', 'Type', {options:[['credit', 'Credit (add money)'], ['debit', 'Debit (take money)']]}),
+          field('f-amt', 'Amount (' + CUR + ')', {mode:'decimal', ph:'0.00'}),
+          field('f-note', 'Reason', {max:60, ph:'e.g. Scholarship payment'}),
+          h('button', {class:'btn', onclick:adjust, disabled:busy || !accounts.length}, 'Post adjustment')),
+        h('div', {class:'card'}, h('h2', {}, 'Pay monthly interest'), h('p', {class:'sub'}, 'Credits one month of interest to every active account.'),
+          field('f-rate', 'Annual rate (%)', {mode:'decimal', value:'4'}),
+          h('button', {class:'btn', onclick:applyInterest, disabled:busy || !accounts.length}, 'Pay interest now'))),
+      h('div', {class:'card'}, h('h2', {}, 'Latest activity, all customers'),
+        activity.length ? h('div', {class:'list'}, activity.map(function(t){
+          var who = byId[t.account_id] ? byId[t.account_id].full_name : 'Removed account';
+          return h('div', {class:'tx'}, h('div', {class:'t'}, who + ' · ' + describe(t)), h('div', {class:'a ' + (t.amount_cents > 0 ? 'pos' : 'neg')}, fmtSigned(t.amount_cents)), h('div', {class:'d'}, detail(t)), h('div', {class:'b'}, ''));
+        })) : emptyBlock('No activity yet', 'Every deposit, withdrawal, transfer and adjustment shows up here.'))
+    ];
+  }
+
+  /* ---------- shell ---------- */
+  function saveInputs(){
+    var out = {}, els = document.querySelectorAll('#app input[id], #app select[id]');
+    for (var i = 0; i < els.length; i++) out[els[i].id] = els[i].value;
+    out.__focus = document.activeElement && document.activeElement.id || null;
+    return out;
+  }
+  function restoreInputs(s){
+    for (var k in s){
+      if (k === '__focus') continue;
+      var e = document.getElementById(k);
+      if (e && e.type !== 'file' && e.value !== s[k]) e.value = s[k];
+    }
+    if (s.__focus){ var f = document.getElementById(s.__focus); if (f && f.focus) f.focus(); }
+  }
+
+  function build(){
+    if (status === 'loading') return [emptyBlock('Opening the vault…', 'Loading TrustVT.')];
+    if (status === 'error') return [emptyBlock('TrustVT is unavailable', 'We could not reach the bank right now. Check your connection and refresh the page.')];
+    if (status === 'signedout') return viewAuth();
+    var a = myAccount();
+    var tabs = [['overview', 'Overview'], ['move', 'Move money'], ['history', 'History']];
+    if (isAdmin) tabs.push(['admin', 'Admin console']);
+    if (!tab || (tab === 'admin' && !isAdmin)) tab = (isAdmin && !a) ? 'admin' : 'overview';
+    var nav = h('nav', {class:'tabs', 'aria-label':'Sections'}, tabs.map(function(t){
+      return h('button', {type:'button', 'aria-current':tab === t[0] ? 'page' : null, onclick:function(){ tab = t[0]; pending = null; draw(); }}, t[1]);
+    }));
+    var body = tab === 'move' ? viewMove() : tab === 'history' ? viewHistory() : tab === 'admin' ? viewAdmin() : viewOverview();
+    return [nav, h('div', {class:'stack'}, body)];
+  }
+
+  function draw(){
+    var saved = saveInputs();
+    $('#pills').replaceChildren(
+      isAdmin ? h('span', {class:'pill'}, 'Bank admin') : null,
+      session ? h('button', {class:'btn ghost sm', onclick:signOut}, 'Sign out') : null);
+    var root = $('#app');
+    root.replaceChildren.apply(root, build());
+    restoreInputs(saved);
+  }
+
+  async function afterAuth(){
+    var r = await sb.auth.getSession();
+    session = r.data.session;
+    if (!session){ status = 'signedout'; accounts = []; txs = []; isAdmin = false; lastSnapshot = ''; tab = null; pending = null; draw(); return; }
+    try {
+      var adm = await sb.rpc('is_admin');
+      isAdmin = adm.data === true;
+      await refresh();
+      status = 'ok';
+    } catch (e){ status = 'error'; }
+    draw();
+  }
+
+  function boot(){
+    draw();
+    if (!window.supabase){ status = 'error'; draw(); return; }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    sb.auth.onAuthStateChange(function(ev){
+      if (ev === 'INITIAL_SESSION' || ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') setTimeout(afterAuth, 0);
+    });
+    setInterval(async function(){
+      if (!session || busy || status !== 'ok' || document.hidden) return;
+      try { if (await refresh()) draw(); } catch (e){}
+    }, 20000);
+  }
+  boot();
+})();
+
+</script>
